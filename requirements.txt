@@ -1,0 +1,13 @@
+# Rep-Mamba dependencies
+# Install with: pip install -r requirements.txt
+
+torch>=2.0.0
+torchvision>=0.15.0
+einops>=0.7.0
+numpy>=1.24.0
+Pillow>=9.5.0
+scikit-image>=0.21.0    # for PSNR/SSIM metrics
+
+# Optional: much faster selective scan on CUDA GPUs
+# pip install causal_conv1d mamba-ssm
+# (requires CUDA ≥ 11.6 and matching CUDA toolkit)
