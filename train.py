@@ -168,7 +168,6 @@ def train(args):
         model.train()
         epoch_loss = 0.0
         t0 = time.time()
-		t1 = time.time()
 
         log.info(f"Epoch [{epoch:4d}/{args.epochs}] started | batches={len(train_loader)}")
 
