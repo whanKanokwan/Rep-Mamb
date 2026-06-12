@@ -25,7 +25,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 import numpy as np
 from skimage.metrics import peak_signal_noise_ratio as calc_psnr
 from skimage.metrics import structural_similarity as calc_ssim
@@ -148,7 +148,8 @@ def train(args):
                                 step_epochs=args.lr_step,
                                 gamma=args.lr_gamma)
     criterion = nn.L1Loss()
-    scaler = GradScaler(enabled=args.amp)
+    use_amp = bool(args.amp and device.type == 'cuda')
+    scaler = GradScaler('cuda', enabled=use_amp)
 
     # ---- optional resume ----
     start_epoch = 1
@@ -168,14 +169,23 @@ def train(args):
         epoch_loss = 0.0
         t0 = time.time()
 
-        for lr_img, hr_img in train_loader:
+        log.info(f"Epoch [{epoch:4d}/{args.epochs}] started | batches={len(train_loader)}")
+
+        for batch_idx, (lr_img, hr_img) in enumerate(train_loader, start=1):
+            if batch_idx == 1:
+                log.info(
+                    f"First batch loaded | LR={tuple(lr_img.shape)} HR={tuple(hr_img.shape)}"
+                )
+
             lr_img = lr_img.to(device, non_blocking=True)
             hr_img = hr_img.to(device, non_blocking=True)
 
             optimizer.zero_grad()
-            with autocast(enabled=args.amp):
+
+            with autocast(device_type='cuda', enabled=use_amp):
                 sr = model(lr_img)
                 loss = criterion(sr, hr_img)
+
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -183,6 +193,13 @@ def train(args):
             scaler.update()
 
             epoch_loss += loss.item()
+
+            if batch_idx == 1 or batch_idx % args.log_freq == 0 or batch_idx == len(train_loader):
+                log.info(
+                    f"Epoch [{epoch:4d}/{args.epochs}] "
+                    f"Batch [{batch_idx:4d}/{len(train_loader)}] "
+                    f"loss={loss.item():.4f}"
+                )
 
         scheduler.step()
         avg_loss = epoch_loss / len(train_loader)
@@ -243,7 +260,8 @@ def parse_args():
                    help='Path to AID dataset root (contains 30 class folders)')
     p.add_argument('--out_dir', type=str, default='./results',
                    help='Directory for checkpoints and logs')
-    p.add_argument('--num_workers', type=int, default=4)
+    p.add_argument('--num_workers', type=int, default=0,
+                   help='DataLoader workers. Use 0 for Colab stability')
 
     # SR settings
     p.add_argument('--scale', type=int, default=4, choices=[2, 3, 4])
@@ -273,6 +291,8 @@ def parse_args():
                    help='Evaluate on test set every N epochs')
     p.add_argument('--save_freq', type=int, default=100,
                    help='Save checkpoint every N epochs')
+    p.add_argument('--log_freq', type=int, default=10,
+                   help='Print training progress every N batches')
 
     return p.parse_args()
 	
