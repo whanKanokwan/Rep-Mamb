@@ -20,7 +20,6 @@ import os
 import time
 import math
 import logging
-import gdown
 from pathlib import Path
 
 import torch
@@ -34,8 +33,6 @@ from skimage.metrics import structural_similarity as calc_ssim
 from model import RepMamba
 from dataset import get_dataloaders
 
-DATASET_DIR = "./data/AID"
-ZIP_FILE = "./data/AID.ZIP"
 
 # ──────────────────────────────────────────────────────────────
 # Logging
@@ -278,29 +275,8 @@ def parse_args():
                    help='Save checkpoint every N epochs')
 
     return p.parse_args()
-
-	
-def download_dataset():
-    if os.path.exists(DATASET_DIR):
-        print("Dataset already exists.")
-        return
-
-    os.makedirs("./data", exist_ok=True)
-
-    file_id = "1safmD7VOs8pwOjPiMt_hbetR2z7I1eIo"
-    url = f"https://drive.google.com/uc?id={file_id}"
-
-    print("Downloading dataset...")
-    gdown.download(url, ZIP_FILE, quiet=False)
-
-    print("Extracting dataset...")
-    with zipfile.ZipFile(ZIP_FILE, "r") as zip_ref:
-        zip_ref.extractall("./data")
-
-    print("Dataset ready.")
 	
 
 if __name__ == '__main__':
     args = parse_args()
-	donwload_dataset()
     train(args)
