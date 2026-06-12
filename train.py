@@ -291,7 +291,7 @@ def donwload_dataset():
 	url = f"https://drive.google.com/uc?id={file_id}"
 	
 	print("Downloading AID dataset..")
-		gdown.download(url, ZIP_FILE, quiet=False)
+	gdown.download(url, ZIP_FILE, quiet=False)
 	 
 	print("Extracting dataset...")
     with zipfile.ZipFile(ZIP_FILE, 'r') as zip_ref:
