@@ -168,6 +168,7 @@ def train(args):
         model.train()
         epoch_loss = 0.0
         t0 = time.time()
+		t1 = time.time()
 
         log.info(f"Epoch [{epoch:4d}/{args.epochs}] started | batches={len(train_loader)}")
 
@@ -176,15 +177,29 @@ def train(args):
                 log.info(
                     f"First batch loaded | LR={tuple(lr_img.shape)} HR={tuple(hr_img.shape)}"
                 )
+			
+			t1 = time.time()
 
             lr_img = lr_img.to(device, non_blocking=True)
             hr_img = hr_img.to(device, non_blocking=True)
+			
+			t2 = time.time()
 
             optimizer.zero_grad()
 
             with autocast(device_type='cuda', enabled=use_amp):
                 sr = model(lr_img)
                 loss = criterion(sr, hr_img)
+				
+			t3 = time.time()
+			
+			print(
+				f"Batch={batch_idx} "
+				f"Load={t2-t1:.2f}s "
+				f"Forward={t3-t2:.2f}s"
+			)
+			
+			break
 
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
